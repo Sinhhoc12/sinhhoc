@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'SiGK1_screen.dart'; //
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:markdown/markdown.dart' as md;
 import 'package:sinhhoc/utils/dinhdang.dart';
 class siResultDungsai extends StatelessWidget {
   final List<Map<String, dynamic>> questions;
