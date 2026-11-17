@@ -38,6 +38,7 @@ class DetailScreen extends StatelessWidget {
           final String questionText = question['Question'] ?? "Không có nội dung";
           final String correctAnswer = question['Answer'] ?? "Chưa có đáp án";
           final String? userAnswer = userAnswers.length > index ? userAnswers[index] : null;
+          final int soThuTu = question['cau_so'] ?? (index + 1);
 
           // Chuyển đáp án sang chữ cái
           final String userLetter = getOptionLetter(question, userAnswer);
@@ -51,7 +52,7 @@ class DetailScreen extends StatelessWidget {
             child: ListTile(
               // Câu hỏi (hiển thị Markdown)
               title:MarkdownBody(
-                data: '**Câu ${index + 1}:** ${sanitize(questionText)}',
+                data: '**Câu $soThuTu:** ${sanitize(questionText)}',
                 styleSheet: markdownStyle,
                 inlineSyntaxes: markdownInlineSyntaxes,
                 builders: markdownBuilders,

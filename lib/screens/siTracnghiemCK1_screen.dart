@@ -17,7 +17,6 @@ class siTracnghiemCK1 extends StatefulWidget {
 
 class _siTracnghiemCK1State extends State<siTracnghiemCK1> {
   List<Map<String, dynamic>> questions = [];
-  int currentQuestion = 0;
   List<String?> selectedAnswers = [];
   int correctAnswers = 0;
   bool isLoading = true;
@@ -100,67 +99,63 @@ class _siTracnghiemCK1State extends State<siTracnghiemCK1> {
       throw Exception('Không tải được dữ liệu');
     }
   }
+  void _xacNhanNopBai() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xác nhận nộp bài"),
+        content: const Text(
+            "Bạn có muốn hoàn thành bài"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Quay lại")),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
 
-  void nextQuestion() {
-    if (currentQuestion < questions.length - 1) {
-      setState(() {
-        currentQuestion++;
-      });
-    } else {
-      int totalCorrect = 0;
-      for (int i = 0; i < questions.length; i++) {
-        final sel = selectedAnswers[i];
-        final correct = questions[i]['Answer'];
-        if (sel != null && sel == correct) {
-          totalCorrect++;
-        }
-      }
+              List<Map<String, dynamic>> filteredQuestions = [];
+              List<String?> filteredAnswers = [];
+              for (int i = 0; i < questions.length; i++) {
+                if (selectedAnswers[i] != null) {
+                  final qWithNumber = Map<String, dynamic>.from(questions[i]);
+                  qWithNumber['cau_so'] = i + 1;
+                  filteredQuestions.add(qWithNumber);
+                  filteredAnswers.add(selectedAnswers[i]);
+                }
+              }
 
-      correctAnswers = totalCorrect;
+              int totalCorrect = 0;
+              for (int i = 0; i < filteredQuestions.length; i++) {
+                if (filteredAnswers[i] == filteredQuestions[i]['Answer']) {
+                  totalCorrect++;
+                }
+              }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ResultScreen(
-            totalQuestions: questions.length,
-            correctAnswers: correctAnswers,
-            theme: 'default',
-            questions: questions,           // ✅ truyền toàn bộ câu hỏi
-            userAnswers: selectedAnswers, // ✅ truyền đáp án học sinh chọn
-            manhinh: 'CK1',
-            tenHocSinh: tenHocSinh,
+              correctAnswers = totalCorrect;
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ResultScreen(
+                    totalQuestions: filteredQuestions.length,
+                    correctAnswers: totalCorrect,
+                    theme: 'default',
+                    questions: filteredQuestions,
+                    userAnswers: filteredAnswers,
+                    tenHocSinh: tenHocSinh,
+                    manhinh: 'CK1',
+                  ),
+                ),
+              );
+            },
+            child: const Text("Nộp bài"),
           ),
-        ),
-      );
-    }
-  }
-
-  void previousQuestion() {
-    if (currentQuestion > 0) {
-      setState(() {
-        currentQuestion--;
-      });
-    }
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: const Text('Đang tải...'),
-          backgroundColor: Color(0xFF1E88E5),
-        ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    final current = questions[currentQuestion];
-    final selectedAnswer = selectedAnswers[currentQuestion];
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -168,218 +163,127 @@ class _siTracnghiemCK1State extends State<siTracnghiemCK1> {
           'Ôn tập: Kiểm tra cuối kì 1',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Color(0xFF1E88E5),
+        backgroundColor: const Color(0xFF1E88E5),
         foregroundColor: Colors.white,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Center(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'Câu ${currentQuestion + 1}/${questions.length}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0D47A1),
-                  ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: questions.length,
+        itemBuilder: (context, index) {
+          return _buildQuestionCard(questions[index], index);
+        },
+      ),
+      bottomNavigationBar: isLoading || questions.isEmpty
+          ? null
+          : SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: _xacNhanNopBai,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E88E5),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
                 ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFF8FBFF),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Color(0xFF1E88E5), width: 1.5),
-                  ),
-                  child: Column(
-                    children: [
-                      MarkdownBody(
-                        data: sanitize(current['Question'] ?? ''),
-                        styleSheet: markdownStyle,
-                        inlineSyntaxes: markdownInlineSyntaxes,
-                        builders: markdownBuilders,
-                        softLineBreak: true,
-                      ),
-
-                      const SizedBox(height: 10),
-                      // ✅ Thêm phần kiểm tra & hiển thị ảnh
-                      if (current['Image'] != null && current['Image'].toString().isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            current['Image'],
-                            height: MediaQuery.of(context).size.height * 0.4,
-                            fit: BoxFit.contain,
-                            loadingBuilder: (context, child, progress) {
-                              if (progress == null) return child;
-                              return const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) => const Text(
-                              '⚠️ Không tải được hình ảnh',
-                              style: TextStyle(color: Colors.redAccent),
-                            ),
-                          ),
-
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ...['option1', 'option2', 'option3', 'option4'].map((key) {
-                  final isSelected = selectedAnswer == current[key];
-                  return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: isSelected ? Color(0xFFF8FBFF) : Colors.white,
-                      border: Border.all(
-                        color: isSelected
-                            ? Color(0xFF1E88E5)
-                            : Colors.grey.shade300,
-                        width: isSelected ? 2 : 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          spreadRadius: 1,
-                          blurRadius: 3,
-                        )
-                      ],
-                    ),
-                    child: RadioListTile<String>(
-                      title: MarkdownBody(
-                        data: sanitize(current[key] ?? ''),
-                        styleSheet: markdownStyle,
-                        inlineSyntaxes: markdownInlineSyntaxes,
-                        builders: markdownBuilders,
-                        softLineBreak: true,
-                      ),
-                      value: current[key] ?? '',
-                      groupValue: selectedAnswer,
-                      activeColor: Color(0xFF1E88E5),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedAnswers[currentQuestion] = value;
-                        });
-                      },
-                    ),
-                  );
-                }),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Nút quay lại
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF1976D2),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        elevation: 2,
-                      ),
-                      onPressed: currentQuestion > 0 ? previousQuestion : null,
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      label: const Text(
-                        'Câu trước',
-                        style: TextStyle(fontSize: 15, color: Colors.white),
-                      ),
-                    ),
-                    // Nút tiếp / hoàn thành
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF1976D2),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        elevation: 2,
-                      ),
-                      onPressed: selectedAnswer == null ? null : nextQuestion,
-                      icon: const Icon(Icons.navigate_next, color: Colors.white),
-                      label: Text(
-                        currentQuestion == questions.length - 1 ? 'Hoàn thành' : 'Câu tiếp',
-                        style: const TextStyle(fontSize: 15, color: Colors.white),
-                      ),
-                    ),
-                    // Nút Nộp bài 🔹 đây là phần bổ sung
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 2,
-                      ),
-                      icon: const Icon(Icons.upload, color: Colors.white),
-                      label: const Text('Nộp bài', style: TextStyle(fontSize: 15, color: Colors.white)),
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text("Xác nhận nộp bài"),
-                            content: const Text(
-                                "Bạn có muốn nộp bài bây giờ không?\nCác câu chưa trả lời sẽ không được tính"),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-
-                                  // 🔹 Lọc các câu đã trả lời
-                                  List<Map<String, dynamic>> filteredQuestions = [];
-                                  List<String?> filteredAnswers = [];
-                                  for (int i = 0; i < questions.length; i++) {
-                                    if (selectedAnswers[i] != null) {
-                                      filteredQuestions.add(questions[i]);
-                                      filteredAnswers.add(selectedAnswers[i]);
-                                    }
-                                  }
-
-                                  // 🔹 Tính số câu đúng
-                                  int totalCorrect = 0;
-                                  for (int i = 0; i < filteredQuestions.length; i++) {
-                                    if (filteredAnswers[i] == filteredQuestions[i]['Answer']) {
-                                      totalCorrect++;
-                                    }
-                                  }
-
-                                  // 🔹 Chuyển sang ResultScreen
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ResultScreen(
-                                        totalQuestions: filteredQuestions.length,
-                                        correctAnswers: totalCorrect,
-                                        theme: 'default',
-                                        questions: filteredQuestions,
-                                        userAnswers: filteredAnswers,
-                                        tenHocSinh: tenHocSinh,
-                                        manhinh: 'GK1',
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: const Text("Đồng ý"),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ],
+              ),
+              icon: const Icon(Icons.upload, color: Colors.white),
+              label: const Text(
+                "NỘP BÀI",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+  Widget _buildQuestionCard(Map<String, dynamic> data, int idx) {
+    const optionLetters = ['A', 'B', 'C', 'D'];
+
+    return StatefulBuilder(
+      builder: (context, setLocalState) {
+        final selectedAnswer = selectedAnswers[idx];
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFF1E88E5), width: 1.2),
+            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFFF8FBFF),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MarkdownBody(
+                data: sanitize("**Câu ${idx + 1}:** ${data['Question'] ?? ''}"),
+                styleSheet: markdownStyle,
+                inlineSyntaxes: markdownInlineSyntaxes,
+                builders: markdownBuilders,
+                softLineBreak: true,
+              ),
+              if (data['Image'] != null && data['Image'].toString().isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        data['Image'],
+                        height: MediaQuery.of(context).size.height * 0.35,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Text(
+                          '⚠️ Không tải được hình ảnh',
+                          style: TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 6),
+              for (int i = 1; i <= 4; i++)
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: selectedAnswer == data['option$i']
+                        ? const Color(0xFFE3F2FD)
+                        : Colors.white,
+                    border: Border.all(
+                      color: selectedAnswer == data['option$i']
+                          ? const Color(0xFF1E88E5)
+                          : Colors.grey.shade300,
+                      width: selectedAnswer == data['option$i'] ? 1.8 : 1,
+                    ),
+                  ),
+                  child: RadioListTile<String>(
+                    title: MarkdownBody(
+                      data: sanitize("**${optionLetters[i - 1]}.** ${data['option$i'] ?? ''}"),
+                      styleSheet: markdownStyle,
+                      inlineSyntaxes: markdownInlineSyntaxes,
+                      builders: markdownBuilders,
+                      softLineBreak: true,
+                    ),
+                    value: data['option$i'] ?? '',
+                    groupValue: selectedAnswer,
+                    activeColor: const Color(0xFF1E88E5),
+                    onChanged: (value) {
+                      setLocalState(() {
+                        selectedAnswers[idx] = value;
+                      });
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
